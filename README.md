@@ -20,15 +20,13 @@ This isn't a budget tracker. It's the opposite. The goal is to feel good about u
 
 ## Install
 
-Build from source with Swift 5.9+:
+Download the latest `.app` from [Releases](https://github.com/Manzanita-Research/rxburn/releases), unzip, and drop it in `/Applications`.
+
+Or build from source with Swift 5.9+:
 
 ```
 ./build.sh
 ```
-
-Or open `RxBurn/Package.swift` in Xcode.
-
-The built app lives at `RxBurn.app`. Drop it in `/Applications` or wherever you keep things.
 
 ## Requirements
 
