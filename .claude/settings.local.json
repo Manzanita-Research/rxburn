@@ -10,7 +10,9 @@
       "Bash(sleep 1:*)",
       "Bash(head:*)",
       "Bash(./build.sh:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(gh repo:*)",
+      "Bash(git add:*)"
     ]
   }
 }

@@ -12,7 +12,7 @@ struct RxBurnApp: App {
             PopoverContent(usage: usage, configManager: configManager)
                 .frame(width: 360)
         } label: {
-            MenuBarLabel(usage: usage, dailyBudget: configManager.config?.effectiveDailyBudget)
+            MenuBarLabel(usage: usage, dailyBudget: configManager.config?.effectiveDailyBudget, dailyTarget: configManager.config?.effectiveDailyTarget ?? 50)
         }
         .menuBarExtraStyle(.window)
     }
@@ -23,6 +23,7 @@ struct RxBurnApp: App {
 struct MenuBarLabel: View {
     @ObservedObject var usage: UsageMonitor
     var dailyBudget: Double?
+    var dailyTarget: Double
 
     var body: some View {
         switch usage.state {
@@ -31,7 +32,7 @@ struct MenuBarLabel: View {
         case .error:
             Text("⚠")
         case .loaded(let cost):
-            let tier = dailyBudget.map { burnTier(cost: cost, dailyCost: $0) } ?? .cold
+            let tier = dailyBudget.map { burnTier(cost: cost, dailyCost: $0, target: dailyTarget) } ?? .cold
             Image(nsImage: textImage(costString(cost), tier: tier))
         }
     }
@@ -79,9 +80,9 @@ enum BurnTier {
     }
 }
 
-func burnTier(cost: Double, dailyCost: Double) -> BurnTier {
+func burnTier(cost: Double, dailyCost: Double, target: Double) -> BurnTier {
     if cost < dailyCost { return .cold }
-    if cost < 50 { return .warm }
+    if cost < target { return .warm }
     return .hot
 }
 
@@ -166,7 +167,7 @@ struct PopoverContent: View {
 
             Divider()
 
-            TodaySummary(usage: usage, dailyBudget: budget)
+            TodaySummary(usage: usage, dailyBudget: budget, dailyTarget: target)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
@@ -200,11 +201,12 @@ struct PopoverContent: View {
 struct TodaySummary: View {
     @ObservedObject var usage: UsageMonitor
     var dailyBudget: Double
+    var dailyTarget: Double
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if case .loaded(let cost) = usage.state {
-                let tier = burnTier(cost: cost, dailyCost: dailyBudget)
+                let tier = burnTier(cost: cost, dailyCost: dailyBudget, target: dailyTarget)
                 let ratio = cost / max(dailyBudget, 0.01)
 
                 HStack {
@@ -268,7 +270,6 @@ struct TodaySummary: View {
 enum ChartPeriod: String, CaseIterable {
     case week = "Week"
     case month = "Month"
-    case year = "Year"
 }
 
 struct UsageChartView: View {
@@ -293,29 +294,27 @@ struct UsageChartView: View {
                     .foregroundStyle(.secondary)
                     .frame(height: 160)
             } else {
-                let scale = period == .year ? 7.0 : 1.0
                 let maxCost = entries.map(\.cost).max() ?? 0
-                let yMax = max(300 * scale, maxCost * 1.2)
-                let yStep = 50.0 * scale
-                let yTicks = Array(stride(from: 0.0, through: yMax, by: yStep))
+                let yMax = max(300, maxCost * 1.2)
+                let yTicks = Array(stride(from: 0.0, through: yMax, by: 50.0))
 
                 Chart {
                     ForEach(entries) { entry in
                         if let date = entry.date {
                             BarMark(
-                                x: .value("Date", date, unit: barUnit),
+                                x: .value("Date", date, unit: .day),
                                 y: .value("Cost", entry.cost)
                             )
-                            .foregroundStyle(burnTier(cost: entry.cost / scale, dailyCost: dailyBudget).color)
+                            .foregroundStyle(burnTier(cost: entry.cost, dailyCost: dailyBudget, target: dailyTarget).color)
                             .cornerRadius(2)
                         }
                     }
 
-                    RuleMark(y: .value("Subscription Cost", dailyBudget * scale))
+                    RuleMark(y: .value("Subscription Cost", dailyBudget))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .foregroundStyle(.red.opacity(0.5))
 
-                    RuleMark(y: .value("Daily Target", dailyTarget * scale))
+                    RuleMark(y: .value("Daily Target", dailyTarget))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [6, 3]))
                         .foregroundStyle(.orange.opacity(0.7))
                 }
@@ -342,32 +341,18 @@ struct UsageChartView: View {
         }
     }
 
-    private var barUnit: Calendar.Component {
-        period == .year ? .weekOfYear : .day
-    }
-
     private var xAxisStride: Calendar.Component {
-        switch period {
-        case .week: return .day
-        case .month: return .day
-        case .year: return .month
-        }
+        .day
     }
 
     private var xAxisCount: Int {
-        switch period {
-        case .week: return 1
-        case .month: return 7
-        case .year: return 2
-        }
+        period == .week ? 1 : 7
     }
 
     private var xAxisFormat: Date.FormatStyle {
-        switch period {
-        case .week: return .dateTime.weekday(.abbreviated)
-        case .month: return .dateTime.month(.defaultDigits).day()
-        case .year: return .dateTime.month(.abbreviated)
-        }
+        period == .week
+            ? .dateTime.weekday(.abbreviated)
+            : .dateTime.month(.defaultDigits).day()
     }
 
     private var chartEntries: [ChartEntry] {
@@ -376,8 +361,6 @@ struct UsageChartView: View {
             return filledDaily(usage.dailyEntries, days: 7)
         case .month:
             return filledDaily(usage.dailyEntries, days: 30)
-        case .year:
-            return Array(usage.weeklyEntries.suffix(52))
         }
     }
 
