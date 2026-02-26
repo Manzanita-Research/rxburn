@@ -12,6 +12,9 @@ mkdir -p "$APP_DIR"
 cp .build/debug/RxBurn "$APP_DIR/RxBurn"
 cp Info.plist ../RxBurn.app/Contents/Info.plist
 
+# Ad-hoc code sign so macOS doesn't flag the app as damaged
+codesign --force --deep --sign - ../RxBurn.app
+
 echo ""
 echo "Built: RxBurn.app"
 echo "Run:   open RxBurn.app"

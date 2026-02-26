@@ -22,6 +22,14 @@ This isn't a budget tracker. It's the opposite. The goal is to feel good about u
 
 Download the latest `.app` from [Releases](https://github.com/Manzanita-Research/rxburn/releases), unzip, and drop it in `/Applications`.
 
+**macOS may block the app** because it's not notarized by Apple. If you see "damaged and can't be opened," run this once after unzipping:
+
+```
+xattr -cr RxBurn.app
+```
+
+Then open it normally. Or right-click the app and choose "Open" to bypass Gatekeeper.
+
 Or build from source with Swift 5.9+:
 
 ```
