@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ccusage@latest:*)",
+      "Bash(cd /Users/jem/code/manzanita-research/ticker/RxBurn && swift build 2>&1)",
+      "Bash(swift build:*)",
+      "Bash(chmod +x:*)",
+      "Bash(cd /Users/jem/code/manzanita-research/ticker && bash build.sh 2>&1)",
+      "Bash(bash:*)",
+      "Bash(sleep 1:*)",
+      "Bash(head:*)",
+      "Bash(./build.sh:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}
