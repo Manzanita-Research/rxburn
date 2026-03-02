@@ -86,6 +86,7 @@ class UsageMonitor: ObservableObject {
     @Published var dailyEntries: [ChartEntry] = []
     @Published var weeklyEntries: [ChartEntry] = []
     @Published var monthlyEntries: [ChartEntry] = []
+    @Published var dailyLoaded = false
 
     private var timer: Timer?
     private let refreshInterval: TimeInterval = 300
@@ -173,6 +174,7 @@ class UsageMonitor: ObservableObject {
             }
             dailyEntries = entries
         }
+        dailyLoaded = true
     }
 
     private func fetchWeekly() async {

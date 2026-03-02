@@ -28,7 +28,7 @@ struct MenuBarLabel: View {
     var body: some View {
         switch usage.state {
         case .loading:
-            Text("…")
+            Image(nsImage: textImage("--", tier: .cold))
         case .error:
             Text("⚠")
         case .loaded(let cost):
@@ -289,7 +289,10 @@ struct UsageChartView: View {
             .labelsHidden()
 
             let entries = chartEntries
-            if entries.isEmpty {
+            if !usage.dailyLoaded {
+                ProgressView()
+                    .frame(height: 160)
+            } else if entries.isEmpty {
                 Text("No data yet")
                     .foregroundStyle(.secondary)
                     .frame(height: 160)
@@ -337,6 +340,27 @@ struct UsageChartView: View {
                     }
                 }
                 .frame(height: 160)
+
+                let total = entries.map(\.cost).reduce(0, +)
+                let avg = total / Double(entries.count)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Period total")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("$\(String(format: "%.2f", total))")
+                            .font(.system(.caption, design: .monospaced))
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Daily avg")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("$\(String(format: "%.2f", avg))")
+                            .font(.system(.caption, design: .monospaced))
+                    }
+                }
             }
         }
     }
