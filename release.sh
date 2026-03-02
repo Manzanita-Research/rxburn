@@ -16,10 +16,12 @@ cd "$REPO_DIR"
 
 echo "Releasing RxBurn $VERSION"
 
-# Ensure clean working tree
+# Stash any uncommitted work (including untracked files)
+STASHED=false
 if [ -n "$(git status --porcelain)" ]; then
-    echo "Error: dirty working tree. Commit or stash first."
-    exit 1
+    echo "Stashing uncommitted changes..."
+    git stash save -u "pre-release ${VERSION}"
+    STASHED=true
 fi
 
 # Update version in Info.plist
@@ -51,6 +53,12 @@ git push origin main --tags
 gh release create "$VERSION" "$ZIP_NAME" \
     --title "RxBurn $VERSION" \
     --generate-notes
+
+# Restore stashed changes
+if [ "$STASHED" = true ]; then
+    echo "Restoring stashed changes..."
+    git stash pop
+fi
 
 echo ""
 echo "Released: https://github.com/manzanita-research/rxburn/releases/tag/$VERSION"
