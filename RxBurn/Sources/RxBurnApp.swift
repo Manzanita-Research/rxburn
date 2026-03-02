@@ -297,8 +297,8 @@ struct UsageChartView: View {
                     .foregroundStyle(.secondary)
                     .frame(height: 160)
             } else {
-                let maxCost = entries.map(\.cost).max() ?? 0
-                let yMax = max(300, maxCost * 1.2)
+                let monthlyMax = filledDaily(usage.dailyEntries, days: 30).map(\.cost).max() ?? 0
+                let yMax = max(100, (round((monthlyMax + 50) / 50)) * 50)
                 let yTicks = Array(stride(from: 0.0, through: yMax, by: 50.0))
 
                 Chart {
