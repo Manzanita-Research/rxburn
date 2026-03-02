@@ -277,6 +277,8 @@ struct UsageChartView: View {
     var dailyBudget: Double
     var dailyTarget: Double
     @State private var period: ChartPeriod = .week
+    @State private var hoveredDate: Date?
+    @State private var hoverLocation: CGPoint = .zero
 
     var body: some View {
         VStack(spacing: 12) {
@@ -313,6 +315,11 @@ struct UsageChartView: View {
                         }
                     }
 
+                    if let hovered = hoveredDate {
+                        RectangleMark(x: .value("Hovered", hovered, unit: .day))
+                            .foregroundStyle(.white.opacity(0.08))
+                    }
+
                     RuleMark(y: .value("Subscription Cost", dailyBudget))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .foregroundStyle(.red.opacity(0.5))
@@ -337,6 +344,57 @@ struct UsageChartView: View {
                                     .font(.caption2)
                             }
                         }
+                    }
+                }
+                .chartOverlay { chartProxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(.clear)
+                            .contentShape(Rectangle())
+                            .onContinuousHover { phase in
+                                switch phase {
+                                case .active(let location):
+                                    hoverLocation = location
+                                    let plotFrame = geometry[chartProxy.plotFrame!]
+                                    let plotX = location.x - plotFrame.origin.x
+                                    guard plotX >= 0, plotX <= plotFrame.width else {
+                                        hoveredDate = nil
+                                        return
+                                    }
+                                    if let date: Date = chartProxy.value(atX: plotX) {
+                                        let cal = Calendar.current
+                                        let day = cal.startOfDay(for: date)
+                                        if entries.contains(where: { isSameDay($0.date, day) }) {
+                                            if !isSameDay(hoveredDate, day) {
+                                                hoveredDate = day
+                                            }
+                                        } else {
+                                            hoveredDate = nil
+                                        }
+                                    }
+                                case .ended:
+                                    hoveredDate = nil
+                                }
+                            }
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if let hovered = hoveredDate, let entry = entries.first(where: { isSameDay($0.date, hovered) }) {
+                        VStack(spacing: 2) {
+                            Text(hovered.formatted(.dateTime.month(.abbreviated).day()))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text("$\(String(format: "%.2f", entry.cost))")
+                                .font(.system(.caption, design: .monospaced, weight: .medium))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .cornerRadius(4)
+                        .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                        .offset(x: hoverLocation.x - 30, y: hoverLocation.y - 40)
+                        .allowsHitTesting(false)
+                        .animation(.easeOut(duration: 0.1), value: hoveredDate)
                     }
                 }
                 .frame(height: 160)
@@ -386,6 +444,11 @@ struct UsageChartView: View {
         case .month:
             return filledDaily(usage.dailyEntries, days: 30)
         }
+    }
+
+    private func isSameDay(_ a: Date?, _ b: Date?) -> Bool {
+        guard let a, let b else { return false }
+        return Calendar.current.isDate(a, inSameDayAs: b)
     }
 
     private func filledDaily(_ entries: [ChartEntry], days: Int) -> [ChartEntry] {
